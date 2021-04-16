@@ -26,8 +26,7 @@ env:
 jobs:
   build-and-deploy:
     runs-on: windows-latest
-    environment:
-	  name: Development
+    environment: Development
 	strategy:
       matrix:
         dotnet: [ '3.1.x' ]
