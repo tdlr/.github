@@ -27,7 +27,7 @@ jobs:
   build-and-deploy:
     runs-on: windows-latest
     environment: Production
-	strategy:
+    strategy:
       matrix:
         dotnet: [ '3.1.x' ]
 
