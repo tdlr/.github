@@ -1,8 +1,8 @@
-name: Functions App with SQL Backend Build, Test, and Deployment - Production
+name: Functions App with CosmosDb Backend Build, Test, and Deployment - Development
 #
-# Builds, tests, and deploys SQL-backed Azure Functions App and SQL code
+# Builds, tests, and deploys CosmosDb-backed Azure Functions App
 # 	Builds using .Net 3.1.x
-# 	Occurs on push to main branch and uses Production environment
+# 	Occurs on push to develop branch and uses Development environment
 #
 # Required secrets Variables:
 #
@@ -10,14 +10,11 @@ name: Functions App with SQL Backend Build, Test, and Deployment - Production
 # FUNCTION_APP_NAME: Azure Functions App name
 # SOURCE_DIR: Repository source directory
 # AZURE_FUNCTIONAPP_PUBLISH_PROFILE: Azure Functions App publish profile
-# SQL_SERVER: Azure SQL Server FQDN
-# DATABASE: Azure SQL database name
-# SQL_USER: Azure SQL database admin user name
-# SQL_PASSWORD: Azure SQL database admin user password
+# COSMOSDB_EMULATOR_ENDPOINT: local HTTP url with port (https://localhost:8081)
 #
 on:
   push:
-    branches: [ main ]
+    branches: [ develop ]
 
 env:
   BUILD_CONFIG: 'Release'
@@ -25,9 +22,9 @@ env:
   RESTORE_SOURCE: 'https://api.nuget.org/v3/index.json'
 
 jobs:
-  build-and-deploy:
+  build:
     runs-on: windows-latest
-    environment: Production
+    environment: Development
     strategy:
       matrix:
         dotnet: [ '3.1.x' ]
@@ -46,13 +43,13 @@ jobs:
       run: dotnet restore --source ${{ env.RESTORE_SOURCE }}
     - name: Build
       run: dotnet build --configuration ${{ env.BUILD_CONFIG }} --no-restore --output ${{ env.PACKAGE_PATH }}
-    - name: Test
-      run: dotnet test ${{ secrets.SOURCE_DIR }} --no-build --logger trx --collect "Code coverage" --verbosity normal
-    - name: Powershell - Delete Render Functions / Deploy SQL app schema
+    - name: Start CosmosDb Emulator
       shell: pwsh
       run: |
-        Remove-Item ${{ env.PACKAGE_PATH }}\Render* -Confirm:$false -Force -Recurse;
-        .\SQL\sql-app-schema-deploy.ps1 -WorkingPath '${{ github.workspace }}\SQL' -SqlServer '${{ secrets.SQL_SERVER }}' -Database '${{ secrets.DATABASE }}' -Username '${{ secrets.SQL_USER }}' -Password '${{ secrets.SQL_PASSWORD }}';
+          Import-Module "$env:ProgramFiles\Azure Cosmos DB Emulator\PSModules\Microsoft.Azure.CosmosDB.Emulator";
+          Start-CosmosDbEmulator;
+    - name: Test
+      run: dotnet test ${{ secrets.SOURCE_DIR }} --no-build --logger trx --collect "Code coverage" --verbosity normal -- "TestRunParameters.Parameter(name=\"endpoint\", value=\"${{ secrets.COSMOSDB_EMULATOR_ENDPOINT }}\")";
     - name: Azure Functions Deploy
       uses: Azure/functions-action@v1
       id: fa

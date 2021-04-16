@@ -1,0 +1,5 @@
+{
+    "name": "Functions App with CosmosDb Backend Build, Test, and Deployment - Development Workflow",
+    "description": "Workflow Template - Builds, tests, and deploys CosmosDb-backed Azure Functions App",
+    "iconName": "azure"
+}

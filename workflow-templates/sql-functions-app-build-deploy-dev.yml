@@ -6,6 +6,7 @@ name: Functions App with SQL Backend Build, Test, and Deployment - Development
 #
 # Required secrets Variables:
 #
+# TLSBUILDAGENTACCESSPAT: Organization Bot access token
 # FUNCTION_APP_NAME: Azure Functions App name
 # SOURCE_DIR: Repository source directory
 # AZURE_FUNCTIONAPP_PUBLISH_PROFILE: Azure Functions App publish profile
