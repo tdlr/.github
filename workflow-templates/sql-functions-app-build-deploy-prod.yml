@@ -1,0 +1,62 @@
+name: Functions App with SQL Backend Build, Test, and Deployment - Production
+#
+# Builds, tests, and deploys SQL-backed Azure Functions App and SQL code
+# 	Builds using .Net 3.1.x
+# 	Occurs on push to main branch and uses Production environment
+#
+# Required secrets Variables:
+#
+# FUNCTION_APP_NAME: Azure Functions App name
+# SOURCE_DIR: Repository source directory
+# AZURE_FUNCTIONAPP_PUBLISH_PROFILE: Azure Functions App publish profile
+# SQL_SERVER: Azure SQL Server FQDN
+# DATABASE: Azure SQL database name
+# SQL_USER: Azure SQL database admin user name
+# SQL_PASSWORD: Azure SQL database admin user password
+#
+on:
+  push:
+    branches: [ main ]
+
+env:
+  BUILD_CONFIG: 'Release'
+  PACKAGE_PATH: '.\${{ secrets.SOURCE_DIR }}\output'
+  RESTORE_SOURCE: 'https://api.nuget.org/v3/index.json'
+
+jobs:
+  build-and-deploy:
+    runs-on: windows-latest
+    environment:
+	  name: Production
+	strategy:
+      matrix:
+        dotnet: [ '3.1.x' ]
+
+    steps:
+    - name: Checkout repository
+      uses: actions/checkout@v2
+      with:
+        token: ${{ secrets.TLSBUILDAGENTACCESSPAT }}
+        submodules: recursive
+    - name: Setup .Net Core
+      uses: actions/setup-dotnet@v1
+      with:
+        dotnet-version: ${{ matrix.dotnet-version }}
+    - name: Restore dependencies
+      run: dotnet restore --source ${{ env.RESTORE_SOURCE }}
+    - name: Build
+      run: dotnet build --configuration ${{ env.BUILD_CONFIG }} --no-restore --output ${{ env.PACKAGE_PATH }}
+    - name: Test
+      run: dotnet test ${{ secrets.SOURCE_DIR }} --no-build --logger trx --collect "Code coverage" --verbosity normal
+    - name: Powershell - Delete Render Functions / Deploy SQL app schema
+      shell: pwsh
+      run: |
+        Remove-Item ${{ env.PACKAGE_PATH }}\Render* -Confirm:$false -Force -Recurse;
+        .\SQL\sql-app-schema-deploy.ps1 -WorkingPath '${{ github.workspace }}\SQL' -SqlServer '${{ secrets.SQL_SERVER }}' -Database '${{ secrets.DATABASE }}' -Username '${{ secrets.SQL_USER }}' -Password '${{ secrets.SQL_PASSWORD }}';
+    - name: Azure Functions Deploy
+      uses: Azure/functions-action@v1
+      id: fa
+      with:
+        app-name: ${{ secrets.FUNCTION_APP_NAME }}
+        package: ${{ env.PACKAGE_PATH }}
+        publish-profile: ${{ secrets.AZURE_FUNCTIONAPP_PUBLISH_PROFILE }}
