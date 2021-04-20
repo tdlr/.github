@@ -19,7 +19,7 @@ env:
   RESTORE_SOURCE: 'https://api.nuget.org/v3/index.json'
 
 jobs:
-  build-and-deploy:
+  build-and-test:
     runs-on: windows-latest
     strategy:
       matrix:
