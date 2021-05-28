@@ -1,0 +1,5 @@
+{
+    "name": ".Net Build on Pull Request - Workflow",
+    "description": "Workflow Template - Builds .Net solution on pull request",
+    "iconName": "azure"
+}

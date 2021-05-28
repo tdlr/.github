@@ -1,0 +1,41 @@
+name: .Net Library Build on Pull Request
+#
+# Builds and tests .Net library
+# 	Builds using .Net 3.1.x
+# 	Occurs on pull_request to all branches except develop and main
+#
+# Required secrets Variables:
+#
+# TLSBUILDAGENTACCESSPAT: Organization Bot access token
+# SOURCE_DIR: Repository source directory
+#
+on:
+  pull_request:
+    branches: [ '!develop', '!main' ]
+
+env:
+  BUILD_CONFIG: 'Release'
+  PACKAGE_PATH: '.\${{ secrets.SOURCE_DIR }}\output'
+  RESTORE_SOURCE: 'https://api.nuget.org/v3/index.json'
+
+jobs:
+  build-and-test:
+    runs-on: windows-latest
+    strategy:
+      matrix:
+        dotnet: [ '3.1.x' ]
+
+    steps:
+    - name: Checkout repository
+      uses: actions/checkout@v2
+      with:
+        token: ${{ secrets.TLSBUILDAGENTACCESSPAT }}
+        submodules: recursive
+    - name: Setup .Net Core
+      uses: actions/setup-dotnet@v1
+      with:
+        dotnet-version: ${{ matrix.dotnet-version }}
+    - name: Restore dependencies
+      run: dotnet restore --source ${{ env.RESTORE_SOURCE }}
+    - name: Build
+      run: dotnet build --configuration ${{ env.BUILD_CONFIG }} --no-restore --output ${{ env.PACKAGE_PATH }}
