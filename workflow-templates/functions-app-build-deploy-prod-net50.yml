@@ -1,0 +1,88 @@
+name: Functions App (.Net 5.0) Build, Test, and Deployment - Production
+#
+# Builds, tests, and deploys Azure Functions App
+# 	Builds using .Net 5.0.x
+# 	
+#   Build and Test occurs on pull request to main branch
+#   Build and Deploy occurs on push to main branch and uses Production environment
+#
+# Required secrets Variables:
+#
+# TLSBUILDAGENTACCESSPAT: Organization Bot access token
+# FUNCTION_APP_NAME: Azure Functions App name
+# SOURCE_DIR: Repository source directory
+# AZURE_FUNCTIONAPP_PUBLISH_PROFILE: Azure Functions App publish profile
+#
+on:
+  push:
+    branches: [ main ]
+  pull_request:
+    branches: [ main ]
+  workflow_dispatch:
+
+env:
+  BUILD_CONFIG: 'Release'
+  PACKAGE_PATH: '.\${{ secrets.SOURCE_DIR }}\output'
+  RESTORE_SOURCE: 'https://api.nuget.org/v3/index.json'
+
+jobs:
+  build_and_test:
+    if: github.event_name == 'pull_request' || github.event_name == 'workflow_dispatch'
+    runs-on: windows-latest
+    strategy:
+      matrix:
+        dotnet: [ '5.0.x' ]
+
+    steps:
+    - name: Checkout repository
+      uses: actions/checkout@v2
+      with:
+        token: ${{ secrets.TLSBUILDAGENTACCESSPAT }}
+        submodules: recursive
+
+    - name: Setup .Net Core
+      uses: actions/setup-dotnet@v1
+      with:
+        dotnet-version: ${{ matrix.dotnet-version }}
+        
+    - name: Restore dependencies
+      run: dotnet restore --source ${{ env.RESTORE_SOURCE }}
+      
+    - name: Build
+      run: dotnet build --configuration ${{ env.BUILD_CONFIG }} --no-restore --output ${{ env.PACKAGE_PATH }}
+  
+    - name: Test
+      run: dotnet test ${{ secrets.SOURCE_DIR }} --no-build --logger trx --collect "Code coverage" --verbosity normal
+      
+  deploy:
+    if: github.event_name == 'push' || github.event_name == 'workflow_dispatch'
+    runs-on: windows-latest
+    environment: Production
+    strategy:
+      matrix:
+        dotnet: [ '5.0.x' ]
+    steps:
+    - name: Checkout repository
+      uses: actions/checkout@v2
+      with:
+        token: ${{ secrets.TLSBUILDAGENTACCESSPAT }}
+        submodules: recursive
+
+    - name: Setup .Net Core
+      uses: actions/setup-dotnet@v1
+      with:
+        dotnet-version: ${{ matrix.dotnet-version }}
+        
+    - name: Restore dependencies
+      run: dotnet restore --source ${{ env.RESTORE_SOURCE }}
+      
+    - name: Build
+      run: dotnet build --configuration ${{ env.BUILD_CONFIG }} --no-restore --output ${{ env.PACKAGE_PATH }}
+
+    - name: Azure Functions Deploy
+      uses: Azure/functions-action@v1
+      id: fa
+      with:
+        app-name: ${{ secrets.FUNCTION_APP_NAME }}
+        package: ${{ env.PACKAGE_PATH }}
+        publish-profile: ${{ secrets.AZURE_FUNCTIONAPP_PUBLISH_PROFILE }}

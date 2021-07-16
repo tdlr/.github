@@ -1,0 +1,5 @@
+{
+    "name": "Functions App (.Net 5.0) Build, Test, and Deployment - Production Workflow",
+    "description": "Workflow Template - Builds, tests, and deploys Azure Functions App (.Net 5.0)",
+    "iconName": "azure"
+}
