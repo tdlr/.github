@@ -1,0 +1,5 @@
+{
+    "name": ".Net 5.0 Library Build and Test - Workflow",
+    "description": "Workflow Template - Builds and tests a .Net 5.0 library",
+    "iconName": "azure"
+}
